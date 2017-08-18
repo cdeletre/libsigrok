@@ -83,7 +83,7 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 };
 
-#define RESPONSE_DELAY_US (10 * 1000)
+#define RESPONSE_DELAY_US (100 * 1000)
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
@@ -374,6 +374,8 @@ static int set_trigger(const struct sr_dev_inst *sdi, int stage)
 	if (send_longcommand(serial, cmd, arg) != SR_OK)
 		return SR_ERR;
 
+	g_usleep(RESPONSE_DELAY_US);
+
 	cmd = CMD_SET_TRIGGER_VALUE + stage * 4;
 	arg[0] = devc->trigger_value[stage] & 0xff;
 	arg[1] = (devc->trigger_value[stage] >> 8) & 0xff;
@@ -381,6 +383,8 @@ static int set_trigger(const struct sr_dev_inst *sdi, int stage)
 	arg[3] = (devc->trigger_value[stage] >> 24) & 0xff;
 	if (send_longcommand(serial, cmd, arg) != SR_OK)
 		return SR_ERR;
+
+	g_usleep(RESPONSE_DELAY_US);
 
 	cmd = CMD_SET_TRIGGER_CONFIG + stage * 4;
 	arg[0] = arg[1] = arg[3] = 0x00;
@@ -390,6 +394,8 @@ static int set_trigger(const struct sr_dev_inst *sdi, int stage)
 		arg[3] |= TRIGGER_START;
 	if (send_longcommand(serial, cmd, arg) != SR_OK)
 		return SR_ERR;
+
+	g_usleep(RESPONSE_DELAY_US);
 
 	return SR_OK;
 }
@@ -467,6 +473,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (send_longcommand(serial, CMD_SET_DIVIDER, arg) != SR_OK)
 		return SR_ERR;
 
+	g_usleep(RESPONSE_DELAY_US);
+
 	/* Send sample limit and pre/post-trigger capture ratio. */
 	sr_dbg("Setting sample limit %d, trigger point at %d",
 			(readcount - 1) * 4, (delaycount - 1) * 4);
@@ -476,6 +484,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	arg[3] = ((delaycount - 1) & 0xff00) >> 8;
 	if (send_longcommand(serial, CMD_CAPTURE_SIZE, arg) != SR_OK)
 		return SR_ERR;
+
+	g_usleep(RESPONSE_DELAY_US);
 
 	/* Flag register. */
 	sr_dbg("Setting intpat %s, extpat %s, RLE %s, noise_filter %s, demux %s",
@@ -495,9 +505,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (send_longcommand(serial, CMD_SET_FLAGS, arg) != SR_OK)
 		return SR_ERR;
 
+	g_usleep(RESPONSE_DELAY_US);
+
 	/* Start acquisition on the device. */
 	if (send_shortcommand(serial, CMD_RUN) != SR_OK)
 		return SR_ERR;
+
+	g_usleep(RESPONSE_DELAY_US);
 
 	/* Reset all operational states. */
 	devc->rle_count = devc->num_transfers = 0;
